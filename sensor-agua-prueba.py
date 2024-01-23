@@ -1,21 +1,27 @@
 #!/usr/bin/python
 import RPi.GPIO as GPIO
 import time, sys
+from dataclasses import dataclass
 
 FLOW_SENSOR_GPIO = 13
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(FLOW_SENSOR_GPIO, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
-global count
-count = 0
+#global count
+#count = 0
 
-def countPulse(channel):
-   global count
-   if start_counter == 1:
-      count = count+1
+@dataclass
+class test:
+    count: int = 0
+    start_counter: int = 0
+    def countPulse(self, channel):
+        if self.start_counter == 1:
+            self.count = self.count+1
 
-GPIO.add_event_detect(FLOW_SENSOR_GPIO, GPIO.FALLING, callback=countPulse)
+prueba = test()
+
+GPIO.add_event_detect(FLOW_SENSOR_GPIO, GPIO.FALLpassING, callback=prueba.countPulse)
 
 def estable(flow):
     if flow < 2:
@@ -27,16 +33,16 @@ def estable(flow):
 
 while True:
     try:
-        start_counter = 1
-        time.sleep(1)
-        start_counter = 0
-        flow = (count / 7.5)
+        prueba.start_counter = 1
+        time.sleep(10)
+        prueba.start_counter = 0
+        flow = (prueba.count / 7.5)
         print("El flujo es: %.3f Litros/min" % (flow))
 
         presion = estable(flow)
         print("Estado de presión:", presion)
 
-        count = 0
+        prueba.count = 0
         time.sleep(5)
     except KeyboardInterrupt:
         print('\nInterrupción por teclado!')
