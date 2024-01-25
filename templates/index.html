@@ -43,17 +43,25 @@
                                 type="button" role="tab" aria-controls="inicio" aria-selected="true">inicio
                                 </button>
                         </li>
-                        <!--Formato para jinja-->
-                        <!--
-                        {% for nav-item in nav %}    
+                        {% for tab_name, presion in values %}    
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link position-relative" id="{{ nav-item.id }}-tab" data-bs-toggle="tab" data-bs-target="#{{ nav-item.id }}"
-                                type="button" role="tab" aria-controls="{{ nav-item.id }}" aria-selected="true">{{}}
+                            <button class="nav-link position-relative" id="{{ tab_name }}-tab" data-bs-toggle="tab" data-bs-target="#{{ tab_name }}"
+                                type="button" role="tab" aria-controls="{{ tab_name }}" aria-selected="true">{{ tab_name }}
+                                {% if presion %}
+                                    {{ text_warning = classify_presion(presion.flow_start) }}
+                                    {% if presion.is_leaking %}
+                                    <span class="position-absolute top-0 start-50 translate-middle badge bg-danger">
+                                        !
+                                    </span>
+                                    {% elif text_warning == "Sin presión" or text_warning == "Presión baja" %}
+                                    <span class="position-absolute top-0 start-50 translate-middle badge bg-warning text-dark">
+                                        :(
+                                    </span>
+                                    {% endif %}
+                                {% endif %}
                                 </button>
                         </li>
                         {% endfor %}
-                        
-                        -->
                         <li class="nav-item" role="presentation">
                             <button class="nav-link  position-relative" id="home-tab" data-bs-toggle="tab" data-bs-target="#home"
                                 type="button" role="tab" aria-controls="home" aria-selected="true">Oficina
@@ -82,26 +90,53 @@
                     <!--Contenido de pestañas-->
                     <div class="tab-content" id="myTabContent">
                         <div class="pt-5"></div>
-                        <!--Formato para jinja-->
-                        <!--
-                        {% for page in nav-page %}  
-                        <div class="tab-pane fade show active" id="{{ page[id] }}" role="tabpanel" aria-labelledby="{{ page[id] }}-tab">
-                            {{}}
-                        </div>
-                        {% endfor %}
-
-                        {% for page in nav-page %}  
-                        <div class="tab-pane fade" id="{{ page[id] }}" role="tabpanel" aria-labelledby="{{ page[id] }}-tab">
-                            {% for row in rows %}
-                            ...
-                            {% endfor %}
-                        </div>
-                        {% endfor %}
-
-                        -->
                         <div class="tab-pane fade show active" id="inicio" role="tabpanel" aria-labelledby="inicio-tab">
                             Aqui se puede mostrar información importante relevante, como calendarios, imagenes, etc
                         </div>
+                        {% for tab_name, presion in values %} 
+                        <div class="tab-pane fade" id="{{ tab_name }}" role="tabpanel" aria-labelledby="{{ tab_name }}-tab">
+                            {% if presion %}
+                            <div class="row text-center">
+                                <div class="col">
+                                </div>
+                                <div class="col">
+                                    <p>
+                                        Flujo de entrada:
+                                        <br>
+                                        Presiòn; {{ classify_presion(presion.flow_start) }} ({{ presion.flow_start }})
+                                    </p>
+                                </div>
+                                <div class="col">
+                                </div>
+                            </div>
+                                {% if presion.flow_end %}
+                                <div class="row text-center">
+                                    <div class="col">
+                                        <p>
+                                            Flujo de salida:
+                                            <br>
+                                            Presiòn; {{ classify_presion(presion.flow_end) }} ({{ presion.flow_end }})
+                                        </p>
+                                    </div>
+                                    <div class="col">
+                                    </div>
+                                </div>
+                                <div class="row text-center">
+                                    <div class="col">
+                                        <p>
+                                            ¿Hay fuga? - {{ bool( presion.is_leaking ) }}
+                                            <br>
+                                        </p>
+                                    </div>
+                                    <div class="col">
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <p>No hay información, ¿Esta bien configuradas las tuberias?</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
                         <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
                             Very important info: Here
                         </div>
@@ -139,7 +174,7 @@
             <input type="text" class="form-control" id="set-name">
           </div>
           <div class="mb-3">
-            <label for="gpio_pin_start" class="col-form-label">Pin del medidor de entrada</label>
+            <label for="gpio_pin_start d-none" class="col-form-label">Pin del medidor de entrada de la tuberia</label>
             <select class="form-control" id="gpio_pin_start">
                 <option selected>Selecciona un pin</option>
                 <option value="2">Pin 3 (GPIO 2)</option>
@@ -172,7 +207,7 @@
             <div class="mb-3 pt-3">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" id="has_second_sensor">
-                    <label class="form-check-label" for="has_second_sensor">Usar medidor de salida</label>
+                    <label class="form-check-label" for="has_second_sensor">Usar medidor de salida de la tuberia</label>
                   </div>                  
                 <select class="form-control d-none" id="gpio_pin_end">
                     <option selected>Selecciona un pin para el medidor de salida</option>
