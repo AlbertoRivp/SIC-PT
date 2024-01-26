@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, Union
 import RPi.GPIO as GPIO
 import time
-import atexit
+import threading
+from queue import Queue
 
 def classify_presion(flow: int = 0) -> Union[float, str]:
     # TODO: Los datos no son adecuados, se necesita datos reales
@@ -10,7 +11,7 @@ def classify_presion(flow: int = 0) -> Union[float, str]:
         return "Sin presión"
     elif flow < 30:
         return "Presión baja"
-    elif 30 <= flow <= 30:
+    elif 30 <= flow <= 60:
         return "Presión media"
     else:
         return "Presión alta"
@@ -45,10 +46,8 @@ class FlowSetup():
         time.sleep(2)
         self.start_counter = 0
         flow = (self.count / 7.5)
-        print("El flujo es: %.3f Litros/min" % (flow))
 
         presion = classify_presion(flow)
-        print("Estado de presión:", presion)
 
         self.count = 0
 
@@ -67,11 +66,13 @@ class PresionResultados:
 class FlowControl():
     def __init__(self) -> None:
         # Hacemos las debidas modificaciones al gpio para poder trabajar con BCM
-        with GPIO.setmode(GPIO.BCM):
+        GPIO.setmode(GPIO.BCM)
             # Para facilitar el acceso directo a cada set de sensores, utilizaremos un diccionario
-            self.sensores: dict = {}
+        self.sensores: dict = {}
     
-    @atexit.register
+    def __del__(self):
+        self.stop()
+
     def stop(self) -> None:
         self.sensores.clear()
         GPIO.cleanup()
@@ -91,18 +92,43 @@ class FlowControl():
         medidores = self.sensores.get(name, None)
         if not medidores:
             return None
-    
-        if isinstance(medidores, list):
-            flow_start, _ = medidores[0].get_presion()
-            flow_end, _ = medidores[1].get_presion()
-            # Revisamos si ambas presiones concuerdan, con un margen de error de 5
-            if flow_start > flow_end or flow_start > (flow_end+5):
-                return PresionResultados(flow_start, flow_end, 1)
+
+        if isinstance(medidores, list):            
+            # Definimos las variables de los resultados
+            flow_rate_start: float = 0.0
+            flow_rate_end: float = 0.0
+
+            # Creamos funciones independientes para los hilos
+            def get_flow_start():
+                nonlocal medidores, flow_rate_start
+                flow_start, _ = medidores[0].get_presion()
+                flow_rate_start = flow_start
+
+            def get_flow_end():
+                nonlocal medidores, flow_rate_end
+                flow_end, _ = medidores[1].get_presion()
+                flow_rate_end = flow_end
+
+            # Para reducir un poco el tiempo de espera, crearemos dos hilos por cada motor
+            thread_flow_start = threading.Thread(target=get_flow_start)
+            thread_flow_end = threading.Thread(target=get_flow_end)
+
+            # Iniciamos la medicion
+            thread_flow_start.start()
+            thread_flow_end.start()
+
+            # Esperamos a que ambos hilos terminen
+            thread_flow_start.join()
+            thread_flow_end.join()
+
+            # Revisamos si ambas presiones concuerdan, con un margen de error de 10
+            if flow_rate_start > flow_rate_end or flow_rate_start > (flow_rate_end + 10):
+                return PresionResultados(flow_rate_start, flow_rate_end, 1)
             else:
-                return PresionResultados(flow_start, flow_end, 0)
-        
+                return PresionResultados(flow_rate_start, flow_rate_end, 0)
+
         elif isinstance(medidores, FlowSetup):
-            flow = medidores.get_presion()
+            flow, _ = medidores.get_presion()
             return PresionResultados(flow, None, 0)
 
         else:
@@ -113,8 +139,15 @@ class FlowControl():
         self.sensores.pop(name)
 
     def get_names(self) -> Tuple[str]:
-        return tuple( self.sensores.keys() ) # [] crea la lista, * desempaca la lista como si introdujeramos los valores manualmente
+        return tuple( self.sensores.keys() ) 
     
     def get_sensors(self, name: str):
         return self.sensores.get(name, None)
+    
+    def rename_sensors(self, new_name:str, old_name:str):
+        if old_name in self.sensores and not new_name in self.sensores:
+            self.sensores[new_name] = self.sensores.pop(old_name)
+            return 1
+        else:
+            return 0
     

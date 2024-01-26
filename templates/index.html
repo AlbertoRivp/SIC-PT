@@ -23,7 +23,9 @@
         .nav-add-button:hover{
             border:solid;
         }
-        
+        .table-responsive {
+            max-height:300px;
+        }
 
     </style>
 </head>
@@ -48,38 +50,20 @@
                             <button class="nav-link position-relative" id="{{ tab_name }}-tab" data-bs-toggle="tab" data-bs-target="#{{ tab_name }}"
                                 type="button" role="tab" aria-controls="{{ tab_name }}" aria-selected="true">{{ tab_name }}
                                 {% if presion %}
-                                    {{ text_warning = classify_presion(presion.flow_start) }}
+                                    {% set text_warning = classify_presion(presion.flow_start) %}
                                     {% if presion.is_leaking %}
                                     <span class="position-absolute top-0 start-50 translate-middle badge bg-danger">
                                         !
                                     </span>
                                     {% elif text_warning == "Sin presión" or text_warning == "Presión baja" %}
                                     <span class="position-absolute top-0 start-50 translate-middle badge bg-warning text-dark">
-                                        :(
+                                        ?
                                     </span>
                                     {% endif %}
                                 {% endif %}
                                 </button>
                         </li>
                         {% endfor %}
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link  position-relative" id="home-tab" data-bs-toggle="tab" data-bs-target="#home"
-                                type="button" role="tab" aria-controls="home" aria-selected="true">Oficina
-                                </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link position-relative" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile"
-                                type="button" role="tab" aria-controls="profile" aria-selected="false">Casa</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link position-relative" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact"
-                                type="button" role="tab" aria-controls="contact" aria-selected="false">
-                                Tinaco
-                                <span class="position-absolute top-0 start-50 translate-middle badge bg-danger">
-                                    !
-                                </span>
-                            </button>
-                        </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link nav-add-button" data-bs-toggle="modal" data-bs-target="#exampleModal"
                                 type="button" role="tab" aria-controls="contact" aria-selected="false">
@@ -91,66 +75,72 @@
                     <div class="tab-content" id="myTabContent">
                         <div class="pt-5"></div>
                         <div class="tab-pane fade show active" id="inicio" role="tabpanel" aria-labelledby="inicio-tab">
-                            Aqui se puede mostrar información importante relevante, como calendarios, imagenes, etc
+                            {% if inicio_tabla[0] %}
+                            <div class="row">
+                                {% for tabla in inicio_tabla %}
+                                <div class="col-6 table-responsive">
+                                    <table class="table table-dark table-striped-columns table-sm">
+                                        <thead>
+                                            <h2>Tuberia "{{tabla[0][0]}}"</h2>
+                                          <tr>
+                                            <th scope="col">Nombre</th>
+                                            <th scope="col">Fecha de captura</th>
+                                            <th scope="col">Presión</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                        
+                                            {% for item in tabla %}
+                                            <tr>
+                                                <td>{{ item[0] }}</td>
+                                                <td>{{ item[1] }}</td>
+                                                <td>{{ item[2] }}</td>
+                                             </tr>
+                                            {% endfor %}
+                                       
+                                        </tbody>
+                                      </table>
+                                </div>
+                                {% endfor %}
+                            </div>      
+                            {% else %}
+                                Presiona la pestaña de + para agregar tuberias
+                            {% endif %}
                         </div>
                         {% for tab_name, presion in values %} 
                         <div class="tab-pane fade" id="{{ tab_name }}" role="tabpanel" aria-labelledby="{{ tab_name }}-tab">
                             {% if presion %}
-                            <div class="row text-center">
-                                <div class="col">
-                                </div>
+                            <div class="row">
                                 <div class="col">
                                     <p>
-                                        Flujo de entrada:
+                                        <h3><span class="badge text-bg-primary">Presión de entrada</span></h3>
                                         <br>
-                                        Presiòn; {{ classify_presion(presion.flow_start) }} ({{ presion.flow_start }})
+                                        {{ classify_presion(presion.flow_start) }} ({{ presion.flow_start|round }})
                                     </p>
                                 </div>
-                                <div class="col">
-                                </div>
-                            </div>
-                                {% if presion.flow_end %}
-                                <div class="row text-center">
+                                {% if presion.flow_end != None %}
                                     <div class="col">
-                                        <p>
-                                            Flujo de salida:
+                                    <p>
+                                            <h3><span class="badge text-bg-secondary">Presión de salida</span></h3>
                                             <br>
-                                            Presiòn; {{ classify_presion(presion.flow_end) }} ({{ presion.flow_end }})
-                                        </p>
+                                            {{ classify_presion(presion.flow_end) }} ({{ presion.flow_end | round }})
+                                           </p>
                                     </div>
-                                    <div class="col">
-                                    </div>
-                                </div>
-                                <div class="row text-center">
-                                    <div class="col">
                                         <p>
-                                            ¿Hay fuga? - {{ bool( presion.is_leaking ) }}
+                                        
+                                            {% if presion.is_leaking %}
+                                                <span class="badge text-bg-warning">Posible fuga detectada</span>
+
+                                            {% endif %}
                                             <br>
                                         </p>
-                                    </div>
-                                    <div class="col">
-                                    </div>
-                                </div>
                                 {% endif %}
                             {% else %}
                                 <p>No hay información, ¿Esta bien configuradas las tuberias?</p>
                             {% endif %}
                         </div>
+                        </div>
                         {% endfor %}
-                        <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
-                            Very important info: Here
-                        </div>
-                        <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">
-                        <div class="row">
-                            <div class="col">
-                                Presión; Alta
-                            </div>
-                            <div class="col">
-                                ¿Hay fugas?: No
-                            </div>
-                        </div>
-                        </div>
-                        <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">Very important info: goody</div>
                         <div class="pt-5"></div>
                     </div>
 
@@ -167,15 +157,15 @@
         <h1 class="modal-title fs-5" id="exampleModalLabel">Agregar sensor</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      <form action="/add_sensor" method="post">
       <div class="modal-body">
-        <form action="/add_sensor">
           <div class="mb-3">
             <label for="set-name" class="col-form-label">Nombre de la tuberia</label>
-            <input type="text" class="form-control" id="set-name">
+            <input type="text" class="form-control" id="set-name" name="set-name">
           </div>
           <div class="mb-3">
             <label for="gpio_pin_start d-none" class="col-form-label">Pin del medidor de entrada de la tuberia</label>
-            <select class="form-control" id="gpio_pin_start">
+            <select class="form-control" id="gpio_pin_start" name="gpio_pin_start">
                 <option selected>Selecciona un pin</option>
                 <option value="2">Pin 3 (GPIO 2)</option>
                 <option value="3">Pin 5 (GPIO 3)</option>
@@ -206,10 +196,10 @@
             </select>
             <div class="mb-3 pt-3">
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" id="has_second_sensor">
+                    <input class="form-check-input" type="checkbox" role="switch" id="has_second_sensor" name="has_second_sensor">
                     <label class="form-check-label" for="has_second_sensor">Usar medidor de salida de la tuberia</label>
                   </div>                  
-                <select class="form-control d-none" id="gpio_pin_end">
+                <select class="form-control d-none" id="gpio_pin_end" name="gpio_pin_end">
                     <option selected>Selecciona un pin para el medidor de salida</option>
                     <option value="2">Pin 3 (GPIO 2)</option>
                     <option value="3">Pin 5 (GPIO 3)</option>
@@ -239,13 +229,13 @@
                     <option value="21">Pin 40 (GPIO 21)</option>
                 </select>
           </div>
-        </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary">Send message</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="submit" class="btn btn-primary">Agregar tuberia</button>
       </div>
     </div>
+</form>
   </div>
 </div>
 </body>
